@@ -1,0 +1,74 @@
+stages:
+  - test
+  - build
+  - deploy
+  - report
+
+variables:
+  PYTHON_VERSION: "3.10"
+  AZURE_STORAGE_CONNECTION_STRING: "$AZURE_STORAGE_CONNECTION_STRING"  # Securely stored in GitLab CI/CD variables
+  AZURE_FUNCTION_APP_NAME: ""
+  AZURE_RESOURCE_GROUP: ""
+
+cache:
+  paths:
+    - .venv/ #configure it
+
+before_scripts:
+  - python --version
+  - pip install virtualenv
+  - virtualenv .venv
+  - source .venv/bin/activate
+  - pip install -r requirements.txt
+
+test:
+  stage: test
+  script:
+    - echo "Running test for ETL componets..."
+    - pytest notebooks/ --cov=notebooks/ --cov-report=xml
+
+build:
+  stage: build
+  script:
+    - echo "Packaging Azure Function app..."
+    - cd azure/function_app
+    - zip -r function_app.zip * 
+    - mv function_app.zip ../../function_app.zip
+    - echo "Packaging completed"
+
+deploy:
+  stage: deploy
+  only:
+    - main #deploy only form the main path
+  script:
+    - echo "Deploying to Azure..."
+    - az login --service-principal -u $AZURE_USERNAME -p $AZURE_PASSWORD --tenant $AZURE_TENANT_ID
+    - az storage blob upload-batch -s storage/processed -d processed-data --account-name $AZURE_STORAGE_ACCOUNT
+    - az deployment group create --resource-group $RESOURCE_GROUP --template-file azure/deployment/main.bicep
+    - az functionapp deployment source config-zip \
+        --resource-group $RESOURCE_GROUP \
+        --name $FUNCTION_APP_NAME \
+        --src function_app.zip
+    - echo "Deployment completed."
+
+reports:
+  stage: report #to validate it 
+  script:
+    - set -e
+    - echo "Checking if reports directory exists..."
+    - mkdir -p reports
+    - echo "Generating coverage-based report notebooks..."
+    - if python generate_report.py; then
+        echo "Converting notebook to HTML...";
+      else
+        echo "Report notebook creation failed...";
+        exit 1;
+      fi
+    - echo "Converting notebook to HTML"
+    - jupyter nbconvert --to html reports/report.ipynb || echo "Report generation failed or report.ipynb not found"
+    - mkdir -p public
+    - mv reports/report.html public/report.html || echo "No report generated"
+  artifacts:
+    paths:
+      - public/report.html
+    expire_in: 7 days
