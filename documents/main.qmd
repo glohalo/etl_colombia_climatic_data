@@ -1,0 +1,19 @@
+---
+title: "Data Management Plan for Colombia’s Climate Variables"
+author: "Gloria Carrascal"
+date: "Jan 22, 2025"
+format: 
+  pdf: 
+    toc: true
+    number-sections: true
+---
+## Objetives
+## Data Summary
+## FAIR Data
+## Allocation of Resources
+## Data Security
+## Ethical aspects
+## Others Issues
+## Further support in developing the DMP
+
+
