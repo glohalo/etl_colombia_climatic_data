@@ -15,9 +15,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the entire project into the container
 COPY notebooks /notebooks/
 
-# Expose ports if needed (e.g., for Jupyter Notebook or other services)
 EXPOSE 8888
-
-# Default command for the container
-# You can modify this to run a specific Python script or Jupyter Notebook
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browser"]
