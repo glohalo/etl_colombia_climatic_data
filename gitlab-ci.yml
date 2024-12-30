@@ -1,0 +1,45 @@
+stages:
+  - test
+  - report
+
+variables:
+  PYTHON_VERSION: "3.10"
+
+cache:
+  paths:
+    - .venv/
+
+before_script:
+  - python --version
+  - pip install virtualenv
+  - virtualenv .venv
+  - source .venv/bin/activate
+  - pip install -r requirements.txt
+
+test:
+  stage: test
+  script:
+    - echo "Running tests for ETL components..."
+    - pytest --cov=src/ --cov-report=xml
+
+reports:
+  stage: report
+  script:
+    - set -e
+    - echo "Checking if reports directory exists..."
+    - mkdir -p reports
+    - echo "Generating coverage-based report notebooks..."
+    - if python generate_report.py; then
+        echo "Converting notebook to HTML...";
+      else
+        echo "Report notebook creation failed...";
+        exit 1;
+      fi
+    - echo "Converting notebook to HTML"
+    - jupyter nbconvert --to html reports/report.ipynb || echo "Report generation failed or report.ipynb not found"
+    - mkdir -p public
+    - mv reports/report.html public/report.html || echo "No report generated"
+  artifacts:
+    paths:
+      - public/report.html
+    expire_in: 7 days

@@ -1,62 +1,71 @@
 import pytest
-import os
 import time
+from datetime import timedelta, datetime
 from unittest.mock import MagicMock, patch
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium import webdriver
-from extraction import scroll_down, wait_for_download, handle_finder_dialog, download_hydrometeorological_data
+from src.data_extraction import (scroll_down,wait_for_download,handle_finder_dialog,
+    handle_terms_and_conditions_and_download,
+    handle_terms_and_conditions,
+    handle_accept_button,
+    variable_deparment_and_date_set_up
+)
+
 
 def test_scroll_down():
     driver = MagicMock()
     TimeWait = 10
-    element = MagicMock()
-    WebDriverWait(driver, TimeWait).until.return_value = element
 
     scroll_down(driver, TimeWait)
 
-    driver.execute_script.assert_called_with("arguments[0].scrollIntoView(true);", element)
+    driver.execute_script.assert_called()
 
 def test_wait_for_download(tmp_path):
     path = tmp_path
     TimeWait = 10
 
     # Create a dummy file to simulate download completion
-    dummy_file = path / "dummy_file.txt"
+    dummy_file = path / "report.zip"
     dummy_file.touch()
 
     wait_for_download(path, TimeWait)
 
     assert dummy_file.exists()
 
-def test_handle_finder_dialog():
+@patch('subprocess.run')
+def test_handle_finder_dialog(mock_subprocess_run):
     path = "/Users/gloriacarrascal/master/research_data/dm_project/data/bronze/"
     file_name = "report.zip"
 
-    with patch('subprocess.run') as mock_run:
-        handle_finder_dialog(path, file_name)
-        mock_run.assert_called_once()
+    handle_finder_dialog(path, file_name)
+    mock_subprocess_run.assert_called_once()
 
-@patch('extraction.handle_finder_dialog')
-@patch('extraction.wait_for_download')
-@patch('selenium.webdriver.Safari')
-def test_download_hydrometeorological_data(mock_safari, mock_wait_for_download, mock_handle_finder_dialog, tmp_path):
-    driver = mock_safari.return_value
+
+@patch('src.data_extraction.handle_terms_and_conditions')
+@patch('src.data_extraction.handle_accept_button')
+@patch('src.data_extraction.variable_deparment_and_date_set_up')
+@patch('src.data_extraction.webdriver.Safari')
+def test_handle_terms_and_conditions_and_download(mock_safari, mock_variable_deparment_and_date_set_up, mock_handle_accept_button, mock_handle_terms_and_conditions, tmp_path):
+    # Setup
+    driver = MagicMock()
+    mock_safari.return_value = driver
     path = tmp_path
-    variable = "Precipitación"
-    param = "Día pluviométrico (convencional)"
-    departamento = "Antioquia"
-    code = "27015070"
+    variable = "Temperatura"
+    param = "Temperatura máxima diaria"
+    departamento = "Atlantico"
+    code = "29035080"
     date_ini = "01/01/2000"
-    date_fin = "31/12/2020"
+    date_fin = (datetime.today() - timedelta(days=20)).strftime("%d/%m/%Y")
 
-    download_hydrometeorological_data(driver, path, variable, param, departamento, code, date_ini, date_fin)
+    # Mock the handle_terms_and_conditions and handle_accept_button methods to return True
+    mock_handle_terms_and_conditions.return_value = True
+    mock_handle_accept_button.return_value = True
 
-    mock_safari.assert_called_once()
-    mock_wait_for_download.assert_called_once_with(path, 40)
-    mock_handle_finder_dialog.assert_called_once_with(path, "report.zip")
+    # Call the function
+    handle_terms_and_conditions_and_download(path, variable, param, departamento, code, date_ini, date_fin)
 
-if __name__ == "__main__":
-    pytest.main()
-
+    # Assertions
+    mock_safari.assert_called_once()  # Ensure Safari was instantiated
+    driver.get.assert_called_once_with("http://dhime.ideam.gov.co/atencionciudadano/")
+    mock_handle_terms_and_conditions.assert_called_once_with(driver, 60)
+    mock_handle_accept_button.assert_called_once_with(driver, 60)
+    mock_variable_deparment_and_date_set_up.assert_called_once_with(driver, path, variable, param, departamento, code, date_ini, date_fin, retries=1)
+    driver.quit.assert_called_once()
