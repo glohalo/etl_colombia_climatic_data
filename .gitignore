@@ -1,12 +1,6 @@
-notebooks/__pycache__
-notebooks/.pytest_cache
-
-src/__pycache__
-src/.pytest_cache
-
-test/__pycache__
-test/.pytest_cache
-
-.pytest_cache
-.vscode
+*__pycache__
+*.pytest_cache
+*.pytest_cache
+*.vscode
 .venv
+*.DS_Store

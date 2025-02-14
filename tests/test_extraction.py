@@ -1,14 +1,9 @@
-import pytest
-import time
+import os
 from datetime import timedelta, datetime
 from unittest.mock import MagicMock, patch
 from src.data_extraction import (scroll_down,wait_for_download,handle_finder_dialog,
     handle_terms_and_conditions_and_download,
-    handle_terms_and_conditions,
-    handle_accept_button,
-    variable_deparment_and_date_set_up
 )
-
 
 def test_scroll_down():
     driver = MagicMock()
@@ -25,19 +20,16 @@ def test_wait_for_download(tmp_path):
     # Create a dummy file to simulate download completion
     dummy_file = path / "report.zip"
     dummy_file.touch()
-
     wait_for_download(path, TimeWait)
-
     assert dummy_file.exists()
 
 @patch('subprocess.run')
 def test_handle_finder_dialog(mock_subprocess_run):
-    path = "/Users/gloriacarrascal/master/research_data/dm_project/data/bronze/"
-    file_name = "report.zip"
-
+    base_dir = os.path.abspath(os.path.join(os.getcwd(), '.', '..'))
+    path = os.path.join(base_dir, 'data', 'bronze')
+    file_name = "/report.zip"
     handle_finder_dialog(path, file_name)
     mock_subprocess_run.assert_called_once()
-
 
 @patch('src.data_extraction.handle_terms_and_conditions')
 @patch('src.data_extraction.handle_accept_button')

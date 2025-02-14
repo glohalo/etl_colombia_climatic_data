@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch, MagicMock, mock_open
 import os
 import pandas as pd
-import zipfile
 import sys
 sys.path.append(os.path.abspath(os.path.join('..')))
 from src.preprocessing import extract_zip_file, get_csv_files, load_csv_data, filtering_data

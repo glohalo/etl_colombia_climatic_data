@@ -1,19 +1,62 @@
-# Use Python 3.9 as the base image
-FROM python:3.10-slim
+FROM seleniarm/standalone-chromium:latest
 
-# Set environment variables to reduce Docker image size and improve performance
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Switch to root user to install dependencies
+USER root
 
-# Set the working directory inside the container
-WORKDIR /notebooks
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    gnupg2 \
+    libnss3 \
+    libgconf-2-4 \
+    libxi6 \
+    libgdk-pixbuf2.0-0 \
+    libxcomposite1 \
+    libasound2 \
+    libxrandr2 \
+    libatk1.0-0 \
+    libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file and install dependencies
-COPY requirements.txt /notebooks/
-RUN pip install --no-cache-dir -r requirements.txt
+# Install a compatible version of Chromium
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the entire project into the container
-COPY notebooks /notebooks/
+# Install Python and other dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 8888
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browser"]
+# Set the working directory
+WORKDIR /src
+
+# Copy requirements 
+COPY requirements.txt .
+
+# Create a virtual environment 
+RUN python3 -m venv venv && \
+    . venv/bin/activate && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Set the PATH to include the virtual environment
+ENV PATH="/src/venv/bin:$PATH"
+
+# Create necessary directories
+RUN mkdir -p /data/bronze /data/silver /data/gold/
+
+# Copy application code
+COPY src/ /src/
+COPY data/ /data/
+COPY notebooks/ /src/notebooks/
+COPY tests/ /src/tests/
+
+# Switch back to the default user (selenium)
+USER 1200
+
+# Set the default command
+CMD ["python3", "orchestrator.py"]

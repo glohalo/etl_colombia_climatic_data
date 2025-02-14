@@ -4,7 +4,7 @@ from scipy import stats
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.impute import KNNImputer
-from scipy.stats import boxcox, kstest, anderson, chi2, logistic, weibull_min, gamma, poisson, beta, lognorm, triang, chi2_contingency, bartlett
+from scipy.stats import boxcox, chi2_contingency, bartlett
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller, kpss, grangercausalitytests
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -80,7 +80,7 @@ def seasonal_decompositions(data, col):
     # Plot the residual component for both additive and multiplicative decompositions
     plt.figure(figsize=(12, 6))
 
-    plt.plot(additive_decomposition.resid, label='Aditiva', color='black')
+    plt.plot(additive_decomposition.resid, label='Additive', color='black')
     plt.plot(multiplicative_decomposition.resid, label='Multiplicative', color='brown')
 
     plt.title('Resudual Components')
@@ -382,5 +382,5 @@ def grangers_causation_matrix(data, target_column, variables, test='ssr_chi2test
                     break
                         
  
-    return df, causation_dict #df.to_excel('GargerCausalityVolumen.xlsx', engine='xlsxwriter')
+    return df, causation_dict 
 

@@ -4,6 +4,8 @@ import os
 import subprocess
 import pandas as pd
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -16,11 +18,16 @@ from selenium.common.exceptions import (
     UnexpectedAlertPresentException,
     SessionNotCreatedException
 )
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
 from zipfile import ZipFile
 import sys
 sys.path.append(os.path.abspath(os.path.join('..')))
 
 from src.variables import Variables
+from src.chromedriver_config import *
+
+#driver = webdriver.Chrome()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -91,8 +98,7 @@ def variable_deparment_and_date_set_up(driver, path, variable, param, departamen
                         option.click()
                         print(f"Selected variable: {variable}")
                         break
-                
-                scroll_down(driver, TimeWait)
+                logging.info(f"Varible {variable} written perfectly!") 
             except TimeoutException:
                 logging.error("TimeoutException: Failed to find the variable dropdown or options.")
                 continue
@@ -105,26 +111,38 @@ def variable_deparment_and_date_set_up(driver, path, variable, param, departamen
             except Exception as e:
                 logging.error(f"Failed to select variable: {e}")
                 continue
+                logging.info(f"Starting to filter: {param}")
 
-            # Parameter selection
-            logging.info("Step 3: Selecting parameter.") 
-            WebDriverWait(driver, TimeWait).until(
-                EC.presence_of_all_elements_located((By.XPATH, "//input[@name='variablelista[]']"))
-            )
-            scroll_down(driver, TimeWait) 
-            driver.find_element(By.ID, "radio52").click() #radio82
-            driver.find_element(By.XPATH, f"//td[contains(text(), '{param}')]/preceding-sibling::td/input").click()
-            logging.info(f"Selected parameter: {param}")
-            scroll_down(driver, TimeWait)
+            try:
+                # Enter the parameter name
+                time.sleep(10)
+                code_input = WebDriverWait(driver, TimeWait).until(
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="search"]'))
+                )
+                code_input.send_keys(param)
+                logging.info(f"Parameter wrote: {param}")
+                                # Scroll down to make sure the checkbox is visible
+                scroll_down(driver, TimeWait)
 
-            # Department selection
+                # Locate and select the checkbox with the paramater
+                time.sleep(10)
+                checkbox = WebDriverWait(driver, TimeWait).until(
+                    EC.presence_of_element_located((By.XPATH, f"//td[contains(text(), '{param}')]/preceding-sibling::td/input"))
+                )
+                driver.execute_script("arguments[0].click();", checkbox)
+                logging.info(f"Selected checkbox for parameter variable: {param}")
+
+            except Exception as e:
+                logging.error(f"Failed to select parameter {param}. Error: {e}")
+                continue
+
             logging.info("Step 4: Selecting department.") 
-            time.sleep(1)
+            time.sleep(10)
             dept_dropdown = WebDriverWait(driver, TimeWait).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="first"]/table/tbody/tr[1]/td[2]/span'))
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="first"]/table/tbody/tr[1]/td[2]/span/span/span[1]')) #//*[@id="first"]/table/tbody/tr[1]/td[2]/span/span/span[1] #//*[@id="first"]/table/tbody/tr[1]/td[2]/span'
             )
             driver.execute_script("arguments[0].click();", dept_dropdown)
-            time.sleep(1)
+            time.sleep(10)
             dept_option = WebDriverWait(driver, TimeWait).until(
                 EC.element_to_be_clickable((By.XPATH, f"//ul[@aria-hidden='false']//li[text()='{departamento}']"))
             )
@@ -132,6 +150,7 @@ def variable_deparment_and_date_set_up(driver, path, variable, param, departamen
             logging.info(f"Selected department: {departamento}")
 
             # Click the "Filtrar" button
+            time.sleep(10)
             scroll_down(driver, TimeWait)
             logging.info("Clicking the 'Filtrar' button.") 
             filtrar_button = WebDriverWait(driver, TimeWait).until(
@@ -141,7 +160,7 @@ def variable_deparment_and_date_set_up(driver, path, variable, param, departamen
             driver.execute_script("arguments[0].click()", filtrar_button)
             logging.info("Clicked the 'Filtrar' button.")
 
-            time.sleep(2)
+            time.sleep(10)
             try:
                 # Enter the station code
                 code_input = WebDriverWait(driver, TimeWait).until(
@@ -186,39 +205,54 @@ def variable_deparment_and_date_set_up(driver, path, variable, param, departamen
                 date_box.send_keys(date_value)
             logging.info(f"Set date range: {date_ini} to {date_fin}")
 
-            # Step 8: Select next 
+            # Select next 
             logging.info("Step 8: Agregar la consulta")
             time.sleep(2)
             button = WebDriverWait(driver, TimeWait).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="first"]/div[6]/div[1]')))
             button.click()
-
+            time.sleep(10)
             # Select the format to download the data/CSV
             logging.info("Step 9: Select CSV format.")
+            time.sleep(10)
             WebDriverWait(driver, TimeWait).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="OptionCSV"]'))
             ).click()
+            logging.info("Starting download button sequence")
+            time.sleep(10)
             # Download button sequence
             WebDriverWait(driver, TimeWait).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="second"]/div/div[4]/div[1]'))
             ).click()
-            download_button = WebDriverWait(driver, TimeWait).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="dijit_form_Button_2_label"]'))
+            time.sleep(15)
+            logging.info("Handle terms and conditions")#//*[@id="dijit_form_Button_2_label"]
+            download_button = WebDriverWait(driver, 60).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="dijit_form_Button_2_label"]'))
             )
+            driver.execute_script("arguments[0].scrollIntoView(true);", download_button)
+            time.sleep(1)  # Wait for the element to be fully visible
+            # try:
+            #     download_button = WebDriverWait(driver, 60).until(
+            #         EC.element_to_be_clickable((By.XPATH, '//*[@id="dijit_form_Button_2_label"]'))
+            #     )
+            #     logging.info("Button is clickable.")
+            # except Exception as e:
+            #     logging.error(f"Button is not clickable: {e}")
+            #     driver.save_screenshot("/src/data/button_not_clickable.png")
+            #     raise
+            # driver.execute_script("arguments[0].scrollIntoView(true);", download_button)
+            # time.sleep(1)  # Wait for the element to be fully visible
+            # driver.execute_script("arguments[0].click();", download_button)
+            # logging.info("Button clicked using JavaScript.")
+            # download_button = WebDriverWait(driver, TimeWait).until(
+            #     EC.element_to_be_clickable((By.XPATH, '//*[@id="dijit_form_Button_2_label"]'))
+            # )
+            
+            time.sleep(10)
+            logging.info("Terms and conditions accepted successful...")
             download_button.click()
             logging.info("Download initiated.")
-            time.sleep(TimeWait*0.5)
-            handle_finder_dialog(path, "report.zip")
-            wait_for_download(path, TimeWait)
-             # Ensure the downloaded file is stored correctly
-            logging.info("Ensuring the downloaded file is stored correctly.")
-            zip_file_path = f"{path}report.zip"
-            if os.path.exists(zip_file_path):
-                logging.info(f"File stored at: {zip_file_path}")
-            else:
-                raise Exception("Downloaded file not found.")
-            logging.info("Data download and processing completed successfully.")
-            driver.quit()
-            return  # Exit the loop if successful
+            driver.close()
+            return  
         except Exception as e:
             logging.warning(f"Attempt {attempt + 1} failed. Retrying... Error: {e}")
             time.sleep(2)
@@ -236,7 +270,7 @@ def handle_accept_button(driver, TimeWait):
         driver.execute_script("arguments[0].scrollIntoView(true);", accept_button)
         driver.execute_script("arguments[0].click();", accept_button)
         print(f"'Aceptar' button clicked successfully using JavaScript.")
-    except TimeoutException:
+    except TimeoutException as e:
         print(f"Failed to handle the 'Aceptar button: {e}")
         driver.quit()
         return False
@@ -264,12 +298,26 @@ def handle_terms_and_conditions(driver, TimeWait):
         print(f"Failed to handle the checkbox: {e}")
         return False
     return True
+# def configure_chrome_driver(download_dir):
+#     chrome_options = Options()
+#     chrome_prefs = {
+#         "download.default_directory": download_dir,
+#         "download.prompt_for_download": False,
+#         "download.directory_upgrade": True,
+#         "safebrowsing.enabled": True
+#     }
+#     chrome_options.add_experimental_option("prefs", chrome_prefs)
+#     service = Service('/usr/local/bin/chromedriver')  
+#     driver = webdriver.Chrome(service=service, options=chrome_options)
+#     driver.set_page_load_timeout(180)
+#     return driver
 
 def handle_terms_and_conditions_and_download(path, variable, param, departamento, code, date_ini, date_fin):
-    print("Initializing the Safari driver...")
-    driver = webdriver.Safari()
+    print("Initializing the Chrome driver...")
+    driver =  configure_chrome_driver(path)
+    #driver = webdriver.Chrome()
     driver.get("http://dhime.ideam.gov.co/atencionciudadano/")
-    TimeWait = 60 
+    TimeWait = 60
 
     if not handle_terms_and_conditions(driver, TimeWait):
         driver.quit()

@@ -12,12 +12,10 @@ from selenium.common.exceptions import (
     NoSuchElementException,
     TimeoutException,
     ElementClickInterceptedException,
-   # FileNotFoundError,
     NoSuchWindowException,
     UnexpectedAlertPresentException,
     SessionNotCreatedException
 )
-from zipfile import ZipFile
 import sys
 sys.path.append(os.path.abspath(os.path.join('..')))
 from src.variables import Variables
@@ -27,43 +25,27 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 #configuring_path
-file_path = "/Users/gloriacarrascal/master/research_data/dm_project/data/bronze/report.zip"
-output_path_bronze = "/Users/gloriacarrascal/master/research_data/dm_project/data/bronze/"
-output_path_silver = "/Users/gloriacarrascal/master/research_data/dm_project/data/silver/"
+base_dir = os.path.abspath(os.path.join(os.getcwd(), '.', '..'))
+output_path_bronze = os.path.join(base_dir, 'data', 'bronze')
+output_path_silver = os.path.join(base_dir, 'data', 'silver')
+# Ensure the output directories exist
+os.makedirs(output_path_bronze, exist_ok=True)
+os.makedirs(output_path_silver, exist_ok=True)
+
+file_name = next((f for f in os.listdir(output_path_bronze) if f.endswith('.zip')), 'report.zip')
+file_path = os.path.join(output_path_bronze, file_name)
+print(file_path)
+
 current = datetime.today()
 _= current - timedelta(days = 20)
 formated_fin_time = _.strftime("%d/%m/%Y")
 
-# # Retry loop
-# while True:
-#     try:
-#         handle_terms_and_conditions_and_download(
-#             path="/Users/gloriacarrascal/master/research_data/dm_project/data/bronze",
-#             variable="Temperatura",
-#             param='Temperatura máxima diaria',
-#             departamento="Atlantico",
-#             code="29035080",
-#             date_ini="01/01/2000",
-#             date_fin=formated_fin_time
-#         )
-#         break
-#     except (ElementNotInteractableException, NoSuchElementException, TimeoutException, ElementClickInterceptedException):
-
-#             logging.warning("Retrying...")
-#     except (FileNotFoundError, NoSuchWindowException, UnexpectedAlertPresentException):
-#         logging.warning("No Data")
-#         break
-#     except SessionNotCreatedException as e:
-#         logging.error(f"Session not created: {e}")
-#         break
-
-# filtering_data(output_path_bronze, output_path_silver, file_path)
 def main():
     # Retry loop
     while True:
         try:
             handle_terms_and_conditions_and_download(
-                path="/Users/gloriacarrascal/master/research_data/dm_project/data/bronze",
+                path=output_path_bronze,
                 variable="Temperatura",
                 param='Temperatura máxima diaria',
                 departamento="Atlantico",
