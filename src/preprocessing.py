@@ -36,9 +36,8 @@ def filtering_data(output_path_bronze:str, output_path_silver, file_path:str):
     #reanrranging values
     temperature = temperature[['Fecha', 'Valor']]
     temperature.loc[:,'Fecha'] = pd.to_datetime(temperature['Fecha'], errors='coerce')
-    print("Columns 'Fecha' and 'Valor' not found in the DataFrame")
     #Format to datetime
     temperature.loc[:,'Fecha'] = pd.to_datetime(temperature['Fecha'])
-    temperature.to_csv(f'{output_path_silver}dailymaxtemperature.csv', index=False)
+    temperature.to_csv(f'{output_path_silver}/dailymaxtemperature.csv', index=False)
     return temperature
 

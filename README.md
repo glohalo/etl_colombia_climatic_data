@@ -1,96 +1,135 @@
-# Docker Image
+# Data Management Project README
 
-To build and run the Docker image:
+## Important Files
 
-```sh
-docker build -t dm_project .
+1. The directory **documents** contains the report for the *Data Management Plan, ETL for Maximum Daily Temperature in the Atlántico region, Colombia*. main.pdf
 
-```
-Test locally to ensure that images run correctly
-```sh
-docker run --rm -v $(pwd)/data:/data dm_project
+2. The document *main.pdf* second page, we are able to find the #Class Problems given in the first part of the course focused on: `touch`, `chmod`, `sh`, `|` , and `>` commands on the terminal interface
 
-```
-- -rm: Automatically removes the container after it stops, keeping things clean.
-- -v $(pwd)/data:/src/data: Mounts the data directory from your local machine into the container, allowing your scripts to read/write files.
-- main_dir: The name of the Docker image you built.
+3. If you are planning to run the web scrapping on yor local, and see the process: you should have installed a [chrome driver](https://developer.chrome.com/docs/chromedriver/downloads?hl=es-419) compatible with your chrome browser version.
 
-# Set up and Run Tests
-1. Create virtual environment
-```sh
-    cd /path/to/your/project_root
-```
-```sh
-    python -m venv .venv
-```
-2. Activate the virtual environment
+4. Selenium is running in *headless* mode with the container, you should comment this lines and and uncoment the lines to see it on head mode: src/chromedriver_config.py
 
-    -  On Unix/macOs
-        ```sh
-            source .venv/bin/activate
+5. The data downloaded in this process is format zip, and is called: Reporte de información Hidrometeorológica de DHIME generado.zip stored on data/bronze. This data is transformed as follows:
+    a. The After downloaded the orchestrator invoques the module preprocessing.py which contations the functions: 
+
         ```
-    - On windows
-        ```sh
-            .venv\Scripts\activate
+        extract_zip_file(file_path, output_path_bronze)
+        get_csv_files(file_path, output_path_bronze)
+        load_csv_data(output_path_bronze, file_path)
+        filtering_data(output_path_bronze:str, output_path_silver, file_path:str)
         ```
-3. Install Dependencies:
+        
+    b. The final product is a CSV file with Fecha and temperature columns. This data is stored on data/silver/dailymaxtemperature.csv
+
+6. The file src/orchestrator.py, orchestrates the entire ETL process
+
+7. Last, but not least...It is added, an additional exploratory data analysis focused on the statistical nature of the data; this can be found on notebooks/exploratory_data_analysis.ipynb.
+
+
+# Prerequisites
+
+- Python 3.10
+- Google Chrome (`133.0.6943.98`) or similar version than your browser
+- ChromeDriver (`133.0.6943.98`)
+
+```sh
+    curl -o url/chromedriver.zip
+    unzip chromedriver.zip
+    sudo mv chromedriver /usr/local/bin/
+```
+
+## Docker Image
+
+### Build and Run the Docker Image:
+1. **Build the Docker Image**
+    ```sh
+    docker build -t dm_project .
+    ```
+
+2. **Run the Docker Image Locally**
+    ```sh
+    docker run --rm -v $(pwd)/data:/data dm_project
+    ```
+    - `--rm`: Automatically removes the container after it stops, keeping the environment clean.
+    - `-v $(pwd)/data:/data`: Mounts the local `data` directory into the container to allow reading/writing files.
+    - `dm_project`: The name of the Docker image you built.
+
+## Setting Up and Running Tests
+
+### 1. Create a Virtual Environment:
+```sh
+cd /path/to/your/project_root
+python -m venv .venv
+```
+
+### 2. Activate the Virtual Environment:
+- **On Unix/macOS:**
+    ```sh
+    source .venv/bin/activate
+    ```
+- **On Windows:**
+    ```sh
+    .venv\Scripts\activate
+    ```
+
+### 3. Install Dependencies:
 ```sh
     pip install -r requirements.txt
 ```
-4. Excecute tests 
-***should ad to run multiple tests individually
+
+## Extract, load and transform (ETL) excecution
+
+The module that **orchestrates** the ETL process is located on src/orchestrator.py
+
+To run this module, from your main folder and with the environment activated
+
 ```sh
-.venv/bin/python -m pytest -v tests/test_extraction.py 
+    python path/src/orchestrator.py
+```
+
+## Optional Steps:
+
+###  Run Tests:
+To run individual tests:
+```sh
+.venv/bin/python -m pytest -v tests/test_extraction.py
+```
+
+To check the Python interpreter being used:
+```sh
 which python
 ```
 
-### Explanation:
-
-1. **Docker Image**:
-    - Instructions to build and run the Docker image.
-
-2. **Set Up and Run Tests**:
-    - Step-by-step instructions to create, activate, and remove a virtual environment.
-    - Instructions to install dependencies and run tests.
-
-3. **Installing pyenv**:
-    - Instructions to install `pyenv`, add it to your shell, and install the required Python version.
-
-By following these steps, you can set up your development environment, run tests, and manage Python versions using `pyenv`. Adjust the paths and commands as needed for your specific project.
-
-### Nice-to-have
-
-#### Remove Virtual Environment
+### Removing the Virtual Environment
 ```sh
 deactivate
+rm -rf .venv
 ```
-```sh
-rm -rf -venv
-```
-#### Installing pyenv
-1. Install pyenv
 
+## Installing and Using `pyenv`
+
+### 1. Install `pyenv`:
 ```sh
 curl https://pyenv.run | bash
 ```
 
-2. Add pyenv to you shell
+### 2. Add `pyenv` to Your Shell:
 ```sh
-    export PATH="$HOME/.pyenv/bin:$PATH"
-    eval "$(pyenv init --path)"
-    eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
-
-#Install the python version (this project is developed with python 3.10)
-    pyenv install 3.10
+export PATH="$HOME/.pyenv/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
 ```
 
-3. Set the python version globally for the specific directory
+### 3. Install and Set Python 3.10 (Project's Python Version):
 ```sh
+pyenv install 3.10
 pyenv local 3.10
 ```
-### Directory tree
 
+## Directory Structure:
+```
 .
 ├── README.md
 ├── data
@@ -107,64 +146,17 @@ pyenv local 3.10
 │   ├── figures
 │   ├── main.pdf
 │   └── main.qmd
-├── notebook
 ├── notebooks
 │   ├── exploratory_data_analysis.ipynb
 │   └── test_.ipynb
 ├── reports
 ├── requirements.txt
 ├── src
-│   ├── __init__.py
-│   ├── __pycache__
-│   │   ├── __init__.cpython-310.pyc
-│   │   ├── __init__.cpython-313.pyc
-│   │   ├── auxiliar_functions.cpython-310.pyc
-│   │   ├── data_extraction.cpython-310.pyc
-│   │   ├── exploratory_functions.cpython-310.pyc
-│   │   ├── extraction.cpython-310.pyc
-│   │   ├── extraction.cpython-313.pyc
-│   │   ├── orchestrator.cpython-310.pyc
-│   │   ├── preprocessing.cpython-310.pyc
-│   │   ├── test.cpython-39-pytest-7.1.1.pyc
-│   │   ├── variables.cpython-310.pyc
-│   │   └── variables.cpython-313.pyc
 │   ├── data_extraction.py
-│   ├── exploratory_functions.py
-│   ├── generate_report.py
-│   ├── orchestrator.py
 │   ├── preprocessing.py
-│   └── variables.py
+│   └── other_source_files.py
 └── tests
-    ├── __init__.py
-    ├── __pycache__
-    │   ├── __init__.cpython-310.pyc
-    │   ├── __init__.cpython-313.pyc
-    │   ├── __init__.cpython-39.pyc
-    │   ├── test.cpython-39-pytest-7.1.1.pyc
-    │   ├── test_extraction.cpython-310-pytest-8.3.4.pyc
-    │   ├── test_extraction.cpython-313-pytest-8.3.4.pyc
-    │   ├── test_extraction.cpython-39-pytest-7.1.1.pyc
-    │   ├── test_orchestrator.cpython-310-pytest-8.3.4.pyc
-    │   └── test_preprocessing.cpython-310-pytest-8.3.4.pyc
     ├── test_extraction.py
     ├── test_orchestrator.py
     └── test_preprocessing.py
-
-#pip ,list
-## selenium standalone docker image 
-pull
-docker pull selenium/standalone-chromium
-
-run the container
-docker run -d -p 4444:4444 -p 7900:7900 --shm-size="2g" seleniarm/standalone-chromium
-
-configure the runner---> tomorrow :v
-
-runner token: glrt-h-HPfTxx4Fi6GU9Fst6m
-
-activate runner: sudo CONFIG_FILE=/etc/gitlab-runner/config.toml gitlab-runner run
-## ensure the credentiasl on the .gitlab-ci.yml
-## dockerconfig.json
-
-1. ensuring credentiasl to check that my ci has the things configured manually (done!!! :)
-2. find the dcoker config find / -name .docker/config.json 2>/dev/null
+```
