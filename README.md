@@ -30,8 +30,8 @@
 # Prerequisites
 
 - Python 3.10
-- Google Chrome (`133.0.6943.98`) or similar version than your browser
-- ChromeDriver (`133.0.6943.98`)
+- ChromeDriver (`133.0.6943.98`) or similar version than your browser
+- Google Chrome (`133.0.6943.98`)
 
 ```sh
     curl -o url/chromedriver.zip
