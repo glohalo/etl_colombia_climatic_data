@@ -1,0 +1,35 @@
+stages:
+  - build
+
+variables:
+  APP_REPO: "https://git.sc.uni-leipzig.de/da22digu/dm_project.git"
+  DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  DOCKER_TLS_CERTDIR: ""
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - apk add --no-cache rsync  # Install rsync
+    - echo "Starting the CI job..."
+  script:
+    - echo "Starting the CI job..."
+    - echo "Cloning repository $APP_REPO"
+    - git clone https://$GIT_USERNAME:$GIT_PASSWORD@git.sc.uni-leipzig.de/da22digu/dm_project.git app || { echo "Failed to clone repository"; exit 1; }
+    - echo "Repository cloned successfully."
+    - echo "Copying files from 'app/' directory..."
+   # - rsync -av --exclude='documents/' app/ . || { echo "Failed to copy files"; exit 1; }
+    - rsync -av app/ . || { echo "Failed to copy files"; exit 1; }
+    - echo "Files copied successfully."
+    - echo "Logging into Docker registry..."
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY || { echo "Docker login failed"; exit 1; }
+    - echo "Docker login successful."
+    - echo "Building Docker image $DOCKER_IMAGE"
+    - docker build --pull --no-cache -t $DOCKER_IMAGE . || { echo "Docker build failed"; exit 1; }
+    - echo "Docker build completed successfully."
+    - echo "Pushing Docker image to registry..."
+    - docker push $DOCKER_IMAGE || { echo "Docker push failed"; exit 1; }
+    - echo "Docker image pushed successfully."
+

@@ -4,3 +4,5 @@
 *.vscode
 .venv
 *.DS_Store
+*figures
+documents/rdmp_files

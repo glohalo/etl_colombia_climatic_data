@@ -1,162 +1,140 @@
-# Data Management Project README
 
-## Important Files
+# 🌦️ ETL & Data Analysis Pipeline for Colombian Meteorological Data
 
-1. The directory **documents** contains the report for the *Data Management Plan, ETL for Maximum Daily Temperature in the Atlántico region, Colombia*. main.pdf
+This project builds an automated ETL (Extract, Transform, Load) pipeline to extract hydrometeorological data (e.g., maximum daily temperatures) from Colombia’s IDEAM/DHIME web portal.
 
-2. The document *main.pdf* second page, we are able to find the #Class Problems given in the first part of the course focused on: `touch`, `chmod`, `sh`, `|` , and `>` commands on the terminal interface
-
-3. If you are planning to run the web scrapping on yor local, and see the process: you should have installed a [chrome driver](https://developer.chrome.com/docs/chromedriver/downloads?hl=es-419) compatible with your chrome browser version.
-
-4. Selenium is running in *headless* mode with the container, you should comment this lines and and uncoment the lines to see it on head mode: src/chromedriver_config.py
-
-5. The data downloaded in this process is format zip, and is called: Reporte de información Hidrometeorológica de DHIME generado.zip stored on data/bronze. This data is transformed as follows:
-    a. The After downloaded the orchestrator invoques the module preprocessing.py which contations the functions: 
-
-        ```
-        extract_zip_file(file_path, output_path_bronze)
-        get_csv_files(file_path, output_path_bronze)
-        load_csv_data(output_path_bronze, file_path)
-        filtering_data(output_path_bronze:str, output_path_silver, file_path:str)
-        ```
-        
-    b. The final product is a CSV file with Fecha and temperature columns. This data is stored on data/silver/dailymaxtemperature.csv
-
-6. The file src/orchestrator.py, orchestrates the entire ETL process
-
-7. Last, but not least...It is added, an additional exploratory data analysis focused on the statistical nature of the data; this can be found on notebooks/exploratory_data_analysis.ipynb.
+It also includes a containerized setup (via Docker), virtual environment support, and advanced data exploration using statistical tests and visualization techniques.
 
 
-# Prerequisites
+## Project Structure
 
-- Python 3.10
-- ChromeDriver (`133.0.6943.98`) or similar version than your browser
-- Google Chrome (`133.0.6943.98`)
-
-```sh
-    curl -o url/chromedriver.zip
-    unzip chromedriver.zip
-    sudo mv chromedriver /usr/local/bin/
-```
-
-## Docker Image
-
-### Build and Run the Docker Image:
-1. **Build the Docker Image**
-    ```sh
-    docker build -t dm_project .
-    ```
-
-2. **Run the Docker Image Locally**
-    ```sh
-    docker run --rm -v $(pwd)/data:/data dm_project
-    ```
-    - `--rm`: Automatically removes the container after it stops, keeping the environment clean.
-    - `-v $(pwd)/data:/data`: Mounts the local `data` directory into the container to allow reading/writing files.
-    - `dm_project`: The name of the Docker image you built.
-
-## Setting Up and Running Tests
-
-### 1. Create a Virtual Environment:
-```sh
-cd /path/to/your/project_root
-python -m venv .venv
-```
-
-### 2. Activate the Virtual Environment:
-- **On Unix/macOS:**
-    ```sh
-    source .venv/bin/activate
-    ```
-- **On Windows:**
-    ```sh
-    .venv\Scripts\activate
-    ```
-
-### 3. Install Dependencies:
-```sh
-    pip install -r requirements.txt
-```
-
-## Extract, load and transform (ETL) excecution
-
-The module that **orchestrates** the ETL process is located on src/orchestrator.py
-
-To run this module, from your main folder and with the environment activated
-
-```sh
-    python path/src/orchestrator.py
-```
-
-## Optional Steps:
-
-###  Run Tests:
-To run individual tests:
-```sh
-.venv/bin/python -m pytest -v tests/test_extraction.py
-```
-
-To check the Python interpreter being used:
-```sh
-which python
-```
-
-### Removing the Virtual Environment
-```sh
-deactivate
-rm -rf .venv
-```
-
-## Installing and Using `pyenv`
-
-### 1. Install `pyenv`:
-```sh
-curl https://pyenv.run | bash
-```
-
-### 2. Add `pyenv` to Your Shell:
-```sh
-export PATH="$HOME/.pyenv/bin:$PATH"
-eval "$(pyenv init --path)"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-```
-
-### 3. Install and Set Python 3.10 (Project's Python Version):
-```sh
-pyenv install 3.10
-pyenv local 3.10
-```
-
-## Directory Structure:
 ```
 .
 ├── README.md
-├── data
-│   ├── bronze
-│   │   ├── descargaDhime.csv
-│   │   └── report.zip
-│   ├── gold
-│   └── silver
-│       ├── dailymaxtemperature.csv
-│       ├── temperature_processed.csv
-│       └── temperature_stationary.csv
-├── dockerfile
-├── documents
-│   ├── figures
-│   ├── main.pdf
-│   └── main.qmd
-├── notebooks
-│   ├── exploratory_data_analysis.ipynb
-│   └── test_.ipynb
-├── reports
+├── data/
+│   ├── bronze/    ← Raw zipped files downloaded from DHIME
+│   ├── silver/    ← Cleaned CSV files
+│   └── gold/      ← (Optional) Further processed datasets
+├── documents/
+│   ├── rdmp.pdf   ← Data Management Plan 
+├── notebooks/
+│   └── exploratory_data_analysis.ipynb
+├── src/
+│   ├── orchestrator.py         ← Main pipeline controller
+│   ├── data_extraction.py      ← Web scraping using Selenium
+│   ├── preprocessing.py        ← Unzipping and cleaning data
+│   ├── exploratory_functions.py← Custom EDA/statistics utilities
+│   ├── chromedriver_config.py  ← Headless Chrome config for Selenium
+│   └── variables.py            ← Dictionary of hydromet variables
 ├── requirements.txt
-├── src
-│   ├── data_extraction.py
-│   ├── preprocessing.py
-│   └── other_source_files.py
-└── tests
+├── Dockerfile
+└── tests/
     ├── test_extraction.py
     ├── test_orchestrator.py
     └── test_preprocessing.py
 ```
+
+
+## Pipeline Overview
+
+1. **Extraction** (`data_extraction.py`)
+   - Uses Selenium to simulate interaction with the DHIME web platform.
+   - Accepts parameters like `variable`, `station code`, `department`, and `date range`.
+
+2. **Transformation** (`preprocessing.py`)
+   - Unzips raw `.zip` files into `.csv`.
+   - Cleans and filters relevant columns (e.g., `Fecha`, `Valor`).
+   - Stores the output in `data/silver/dailymaxtemperature.csv`.
+
+3. **Exploration** (`exploratory_data_analysis.ipynb`)
+   - Utilizes advanced statistical diagnostics (KPSS, ADF, Box-Cox, Granger Causality).
+   - Visual tools: histograms, seasonal decomposition, ACF/PACF, KDE plots.
+
+4. **Automation** (`orchestrator.py`)
+   - Controls the full ETL pipeline in one go.
+   - Includes logging, retries, and error handling.
+
+
+## 🐳 Docker Support
+
+**Build:** From father repository
+```sh
+docker build -f dm_project_docker/Dockerfile -t dm_project_docker:latest dm_project
+```
+
+**Run:** from father repository
+```sh
+docker run -it --rm \
+-v "$(pwd)":/workspace \
+-w /workspace \
+-e PYTHONPATH=/workspace/src \
+dm_project_docker:latest \
+python3 -m src.orchestrator
+```
+
+> Chrome runs in **headless mode** for containers. To visualize browser activity (e.g., debugging), disable headless mode in `src/chromedriver_config.py`.
+
+
+## 🧪 Testing
+
+**Unit Test Entry Points:**
+- `test_extraction.py`
+- `test_orchestrator.py`
+- `test_preprocessing.py`
+
+**Run tests:**
+```sh
+pytest -v tests/
+```
+
+## Setup Instructions (Local)
+
+### 1. Python & Chrome Requirements
+
+- Python 3.10
+- Chrome (v133.0.6943.98 or matching)
+- Compatible [ChromeDriver](https://developer.chrome.com/docs/chromedriver/downloads)
+
+### 2. Setup Virtual Environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Running the ETL
+
+Once set up:
+
+```bash
+python src/orchestrator.py
+```
+
+## Exploratory Data Analysis (EDA)
+
+Open and run the notebook:
+
+```bash
+jupyter notebook notebooks/exploratory_data_analysis.ipynb
+```
+
+It contains:
+- Temporal trends
+- Seasonality detection
+- Statistical stationarity checks
+- Distribution diagnostics
+- Granger causality tests
+
+---
+
+## 📎 Notes 
+
+- The raw `.zip` file is saved under `data/bronze/`.
+- The cleaned `.csv` file is stored under `data/silver/dailymaxtemperature.csv`.
+- Additional processed outputs may be stored in `data/gold/` (planned extension).
+- The exploratory functions in `exploratory_functions.py` are modular and reusable.
+
+## 🧠 Credits & Context
+
+Developed as part of a Data Management course project to explore the integration of hydrometeorological data from open government portals into reproducible scientific workflows. This includes Dockerization, CI compatibility, and advanced data exploration.

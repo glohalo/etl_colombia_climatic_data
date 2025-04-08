@@ -28,7 +28,7 @@ def load_csv_data(output_path_bronze, file_path):
         data.append(data_csv)
     print(data)
     return data[0]
-def filtering_data(output_path_bronze:str, output_path_silver, file_path:str):
+def filtering_data(output_path_bronze:str, output_path_silver:str, file_path:str):
     temperature = load_csv_data(output_path_bronze, file_path)
     print(temperature.NivelAprobacion.unique())
     #most of the data "Preliminar" is from the the 2024

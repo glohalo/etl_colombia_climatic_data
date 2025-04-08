@@ -1,0 +1,85 @@
+FROM seleniarm/standalone-chromium:latest
+
+# Switch to root user to install dependencies
+USER root
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    gnupg2 \
+    libnss3 \
+    libgconf-2-4 \
+    libxi6 \
+    libgdk-pixbuf2.0-0 \
+    libxcomposite1 \
+    libasound2 \
+    libxrandr2 \
+    libatk1.0-0 \
+    libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install a compatible version of Chromium
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python and other dependencies
+# RUN apt-get update && apt-get install -y \
+#     python3 \
+#     python3-pip \
+#     python3-venv \
+#     && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    apt-get install -y apt-transport-https ca-certificates curl && \
+    echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries && \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Quarto CLI
+# RUN wget https://quarto.org/download/latest/quarto-linux-arm64.deb && \
+#     apt-get install -y ./quarto-linux-arm64.deb && \
+#     rm quarto-linux-arm64.deb
+# Fix for amd64 systems
+RUN wget https://quarto.org/download/latest/quarto-linux-amd64.deb && \
+    apt-get install -y ./quarto-linux-amd64.deb && \
+    rm quarto-linux-amd64.deb
+
+# Set the working directory
+WORKDIR /project
+
+# Copy requirements 
+COPY requirements.txt .
+
+# # Create a virtual environment 
+# RUN python3 -m venv venv && \
+#     . venv/bin/activate && \
+#     pip install --no-cache-dir -r requirements.txt
+# Create virtual environment and install packages
+RUN python3 -m venv /project/venv && \
+    /project/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Set the PATH to include the virtual environment
+ENV PATH="/project/venv/bin:$PATH"
+
+# Create necessary directories
+RUN mkdir -p /data/bronze /data/silver /data/gold/
+
+# Copy application code
+COPY src/ /project/src/
+COPY data/ /project/data/
+COPY notebooks/ /project/notebooks/
+COPY tests/ /project/tests/
+COPY documents/ /project/documents/
+
+# Switch back to the default user (selenium)
+USER 1200
+
+# Set the default command
+CMD ["python3", "-m", "src.orchestrator.py"]

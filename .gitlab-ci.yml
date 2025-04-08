@@ -1,35 +1,54 @@
-# stages:
-#   - build
-
-# build:
-#   stage: build
-#   image: docker:latest
-#   tags: 
-#     - macos
-#     - dm_project
-#   services:
-#   - name: 'docker:20.10.12-dind'
-#   script:
-#     - |
-#     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-#     - docker build --pull -t "$CI_REGISTRY_IMAGE/$CI_PROJECT_NAME:latest" .
-#     - docker push "$CI_REGISTRY_IMAGE/$CI_PROJECT_NAME"
-variables:
-  DOCKER_IMAGE: "$CI_REGISTRY_IMAGE/$CI_PROJECT_NAME:latest"
+image: git.sc.uni-leipzig.de:4567/da22digu/dm_project_docker:latest
 
 stages:
-  - build
+  - extract
+  - analyze
+  - report
 
-build:
-  stage: build
-  image: docker:latest
-  services:
-    - docker:dind
-  variables:
-    DOCKER_TLS_CERTDIR: ""
+variables:
+  PYTHONPATH: "$CI_PROJECT_DIR/src"
+
+download_data:
+  stage: extract
+  tags:
+    - dm_project
   script:
-    - echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker build --pull -t $DOCKER_IMAGE .
-    - docker push $DOCKER_IMAGE
+    - echo "Running ETL"
+    - python3 -m src.orchestrator
+  artifacts:
+    paths:
+      - data/bronze/
+    expire_in: 1 week
+
+run_eda:
+  stage: analyze
+  tags:
+    - dm_project
+  script:
+    - python3 -m pip install --no-cache-dir jupyter nbconvert
+    - jupyter nbconvert --execute --to notebook --inplace notebooks/exploratory_data_analysis.ipynb
+    - jupyter nbconvert --to markdown notebooks/exploratory_data_analysis.ipynb --output eda_report.md
+  artifacts:
+    paths:
+      - notebooks/eda_report.md
+    expire_in: 1 month
+
+render_dmp:
+  stage: report
+  tags:
+    - dm_project
+  before_script:
+    - echo "Installing quarto complements"
+    - apt-get update && apt-get install -y sudo wget
+    - wget https://quarto.org/download/latest/quarto-linux-arm64.deb
+    - sudo apt-get install -y ./quarto-linux-arm64.deb
+    - rm quarto-linux-arm64.deb
+    - export PATH="/opt/quarto/bin:$PATH"
+  script:
+    - quarto render documents/rdmp.qmd
+  artifacts:
+    paths:
+      - documents/rdmp.html
+    expire_in: 1 month
 
 

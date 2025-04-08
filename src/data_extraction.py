@@ -24,8 +24,8 @@ from zipfile import ZipFile
 import sys
 sys.path.append(os.path.abspath(os.path.join('..')))
 
-from src.variables import Variables
-from src.chromedriver_config import *
+from variables import Variables
+from chromedriver_config import *
 
 #driver = webdriver.Chrome()
 
@@ -77,7 +77,7 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 def variable_deparment_and_date_set_up(driver, path, variable, param, departamento, code, date_ini, date_fin, retries=3):
-    TimeWait = 40
+    TimeWait = 90
 
     for attempt in range(retries):
         try:
@@ -217,41 +217,49 @@ def variable_deparment_and_date_set_up(driver, path, variable, param, departamen
             WebDriverWait(driver, TimeWait).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="OptionCSV"]'))
             ).click()
+
             logging.info("Starting download button sequence")
             time.sleep(10)
             # Download button sequence
             WebDriverWait(driver, TimeWait).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="second"]/div/div[4]/div[1]'))
             ).click()
-            time.sleep(15)
+            time.sleep(10)
             logging.info("Handle terms and conditions")#//*[@id="dijit_form_Button_2_label"]
             download_button = WebDriverWait(driver, 60).until(
             EC.presence_of_element_located((By.XPATH, '//*[@id="dijit_form_Button_2_label"]'))
             )
             driver.execute_script("arguments[0].scrollIntoView(true);", download_button)
-            time.sleep(1)  # Wait for the element to be fully visible
-            # try:
-            #     download_button = WebDriverWait(driver, 60).until(
-            #         EC.element_to_be_clickable((By.XPATH, '//*[@id="dijit_form_Button_2_label"]'))
-            #     )
-            #     logging.info("Button is clickable.")
-            # except Exception as e:
-            #     logging.error(f"Button is not clickable: {e}")
-            #     driver.save_screenshot("/src/data/button_not_clickable.png")
-            #     raise
-            # driver.execute_script("arguments[0].scrollIntoView(true);", download_button)
-            # time.sleep(1)  # Wait for the element to be fully visible
-            # driver.execute_script("arguments[0].click();", download_button)
-            # logging.info("Button clicked using JavaScript.")
-            # download_button = WebDriverWait(driver, TimeWait).until(
-            #     EC.element_to_be_clickable((By.XPATH, '//*[@id="dijit_form_Button_2_label"]'))
-            # )
-            
             time.sleep(10)
-            logging.info("Terms and conditions accepted successful...")
             download_button.click()
-            logging.info("Download initiated.")
+            logging.info("Terms and conditions accepted successful...")
+            # Wait for file to download completely
+            timeout = 90  # total seconds to wait
+            end_time = time.time() + timeout
+            download_complete = False
+
+            while time.time() < end_time:
+                files = os.listdir(path)
+                if any(f.endswith('.zip') for f in files):
+                    logging.info("Download completed and .zip file detected")
+                    download_complete = True
+                    break
+                elif any(f.endswith('.crdownload') for f in files):
+                    logging.info("Download in progress (.crdownload file found)...")
+                else:
+                    logging.info("Waiting for download to begin...")
+
+                time.sleep(2)
+
+            if not download_complete:
+                logging.warning("Download did not finish within timeout")
+
+            # Only close the driver after confirming download
             driver.close()
+            logging.info("Driver closed")
+            # time.sleep(30)
+            # driver.close()
+            # logging.info("Driver closed")
             return  
         except Exception as e:
             logging.warning(f"Attempt {attempt + 1} failed. Retrying... Error: {e}")
@@ -298,31 +306,17 @@ def handle_terms_and_conditions(driver, TimeWait):
         print(f"Failed to handle the checkbox: {e}")
         return False
     return True
-# def configure_chrome_driver(download_dir):
-#     chrome_options = Options()
-#     chrome_prefs = {
-#         "download.default_directory": download_dir,
-#         "download.prompt_for_download": False,
-#         "download.directory_upgrade": True,
-#         "safebrowsing.enabled": True
-#     }
-#     chrome_options.add_experimental_option("prefs", chrome_prefs)
-#     service = Service('/usr/local/bin/chromedriver')  
-#     driver = webdriver.Chrome(service=service, options=chrome_options)
-#     driver.set_page_load_timeout(180)
-#     return driver
 
 def handle_terms_and_conditions_and_download(path, variable, param, departamento, code, date_ini, date_fin):
     print("Initializing the Chrome driver...")
     driver =  configure_chrome_driver(path)
     #driver = webdriver.Chrome()
     driver.get("http://dhime.ideam.gov.co/atencionciudadano/")
-    TimeWait = 60
+    TimeWait = 90
 
     if not handle_terms_and_conditions(driver, TimeWait):
         driver.quit()
         return
-
     if not handle_accept_button(driver, TimeWait):
         driver.quit()
         return
